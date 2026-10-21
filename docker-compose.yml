@@ -1,0 +1,21 @@
+# Local PostgreSQL for development:  docker compose up -d
+# Creates the `aurevia` database and a separate `aurevia_test` database used only by the test suite.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aurevia
+      POSTGRES_PASSWORD: aurevia   # local development only; never reuse for a real deployment
+      POSTGRES_DB: aurevia
+    ports: ["5432:5432"]
+    volumes:
+      - aurevia-pg:/var/lib/postgresql/data
+      - ./db/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aurevia -d aurevia"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  aurevia-pg:

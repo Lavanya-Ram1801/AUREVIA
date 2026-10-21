@@ -1,0 +1,26 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: aurevia, POSTGRES_PASSWORD: aurevia, POSTGRES_DB: aurevia_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aurevia" --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://aurevia:aurevia@localhost:5432/aurevia_test?schema=public
+      TEST_DATABASE_URL: postgresql://aurevia:aurevia@localhost:5432/aurevia_test?schema=public
+      JWT_SECRET: ci-only-secret-ci-only-secret-ci-only-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --prefix server && npm install --prefix client
+      - run: npx prisma migrate deploy
+        working-directory: server
+      - run: npm run typecheck && npm run lint
+      - run: npm test
+      - run: npm run build

@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f7f7fc;
+  --surface: #ffffff;
+  --text: #22223a;
+  --muted: #6b6b85;
+  --border: #e6e5f2;
+}
+.dark {
+  --bg: #0d0d22;
+  --surface: #171735;
+  --text: #ecebff;
+  --muted: #a3a3c2;
+  --border: #2a2a4e;
+}
+
+@layer base {
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+  body { @apply bg-[var(--bg)] text-[var(--text)] font-sans antialiased; transition: background-color .3s ease, color .3s ease; }
+  :focus-visible { @apply outline-none ring-2 ring-violet ring-offset-2 ring-offset-[var(--bg)]; }
+  h1, h2, h3 { @apply tracking-tight; }
+}
+
+@layer components {
+  .surface { @apply rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card; }
+  .text-subtle { color: var(--muted); }
+  .glass { @apply border border-white/15 bg-white/10 backdrop-blur-md; }
+  .container-page { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .prose-lesson p { @apply mb-4 leading-7; }
+  .prose-lesson ul { @apply mb-4 list-disc space-y-1 pl-6; }
+  .prose-lesson h3 { @apply mb-2 mt-6 text-lg font-bold; }
+  .prose-lesson pre { @apply mb-4 overflow-x-auto rounded-xl bg-midnight p-4 text-sm text-lavender; }
+  .prose-lesson code { @apply rounded bg-violet/10 px-1.5 py-0.5 text-[0.9em]; }
+  .prose-lesson pre code { @apply bg-transparent p-0; }
+}
+
+.skeleton { position: relative; overflow: hidden; @apply rounded-xl bg-[var(--border)]; }
+.skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: shimmer 1.4s infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  body { background: #fff !important; }
+  .no-print { display: none !important; }
+}

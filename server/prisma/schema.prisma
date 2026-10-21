@@ -1,0 +1,269 @@
+// AUREVIA database schema (PostgreSQL + Prisma)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum NotificationType {
+  ENROLLMENT
+  COURSE_UPDATE
+  MILESTONE
+  COMPLETION
+  CERTIFICATE
+  SYSTEM
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  name             String
+  passwordHash     String
+  role             Role     @default(STUDENT)
+  avatarUrl        String?
+  isActive         Boolean  @default(true)
+  // Bumped on logout / password change to invalidate previously issued JWTs.
+  tokenVersion     Int      @default(0)
+  learningGoal     String?
+  weeklyGoalHours  Int      @default(3)
+  emailNotifs      Boolean  @default(true)
+  theme            String   @default("system")
+  bio              String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  coursesTaught   Course[]
+  enrollments     Enrollment[]
+  reviews         Review[]
+  wishlist        Wishlist[]
+  certificates    Certificate[]
+  notifications   Notification[]
+  notes           LessonNote[]
+  resetTokens     PasswordResetToken[]
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  courses     Course[]
+}
+
+model Course {
+  id               String       @id @default(cuid())
+  title            String
+  slug             String       @unique
+  shortDescription String
+  description      String
+  thumbnailUrl     String?
+  level            SkillLevel   @default(BEGINNER)
+  status           CourseStatus @default(DRAFT)
+  priceCents       Int          @default(0)
+  currency         String       @default("USD")
+  durationMinutes  Int          @default(0)
+  outcomes         String[]
+  prerequisites    String[]
+  isDemo           Boolean      @default(false)
+  publishedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  sections     CourseSection[]
+  enrollments  Enrollment[]
+  reviews      Review[]
+  wishlist     Wishlist[]
+  certificates Certificate[]
+
+  @@index([status, createdAt])
+  @@index([categoryId])
+  @@index([instructorId])
+  @@index([level])
+  @@index([title])
+}
+
+model CourseSection {
+  id       String @id @default(cuid())
+  title    String
+  position Int    @default(0)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons  Lesson[]
+
+  @@index([courseId, position])
+}
+
+model Lesson {
+  id              String   @id @default(cuid())
+  title           String
+  position        Int      @default(0)
+  content         String   @default("")
+  videoUrl        String?
+  resourceUrl     String?
+  resourceName    String?
+  durationMinutes Int      @default(0)
+  isPublished     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sectionId String
+  section   CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progress  LessonProgress[]
+  notes     LessonNote[]
+
+  @@index([sectionId, position])
+}
+
+model Enrollment {
+  id             String    @id @default(cuid())
+  userId         String
+  courseId       String
+  lastLessonId   String?
+  lastAccessedAt DateTime  @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([userId, lastAccessedAt])
+}
+
+model LessonProgress {
+  id           String    @id @default(cuid())
+  enrollmentId String
+  lessonId     String
+  completed    Boolean   @default(false)
+  bookmarked   Boolean   @default(false)
+  completedAt  DateTime?
+  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime  @default(now())
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson     Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([lessonId])
+  @@index([completedAt])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId   String
+  courseId String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  courseId  String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model Certificate {
+  id            String   @id @default(cuid())
+  certificateId String   @unique
+  studentName   String
+  courseTitle   String
+  issuedAt      DateTime @default(now())
+  userId        String
+  courseId      String
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}
+
+model LessonNote {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  lessonId  String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  // Only a SHA-256 hash of the emailed token is stored.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

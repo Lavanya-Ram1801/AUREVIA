@@ -1,0 +1,25 @@
+{
+  "name": "aurevia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AUREVIA: a full-stack online learning platform (React + Express + Prisma + PostgreSQL).",
+  "scripts": {
+    "setup": "npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n api,web -c violet,yellow \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "db:migrate": "npm run prisma:migrate --prefix server",
+    "db:deploy": "npm run prisma:deploy --prefix server",
+    "db:seed": "npm run db:seed --prefix server",
+    "admin:create": "npm run admin:create --prefix server",
+    "build": "npm run build --prefix server && npm run build --prefix client",
+    "test": "npm test --prefix server && npm test --prefix client",
+    "e2e": "npm run e2e --prefix client",
+    "lint": "npm run lint --prefix server && npm run lint --prefix client",
+    "typecheck": "npm run typecheck --prefix server && npm run typecheck --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": { "node": ">=20" }
+}
